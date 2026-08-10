@@ -4,11 +4,11 @@ function Header({ name, themeColor }) {
       style={{
         backgroundColor: themeColor,
         color: "white",
-        padding: "25px",
+        padding: "10px",
         textAlign: "center"
       }}
     >
-      <h1>{name}'s Portfolio</h1>
+      <h1 style={{ margin: "10px 0" }}>{name}'s Portfolio</h1>
     
     </header>
   );
