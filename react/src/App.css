@@ -150,3 +150,67 @@ body {
   background-color: #222;
   color: white;
 }
+
+/* GitHub API Projects */
+
+.search-input {
+  width: 100%;
+  padding: 12px;
+  margin: 20px 0;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.repository-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.project-card {
+  padding: 20px;
+  border-left: 4px solid #2563eb;
+  background-color: #f8fafc;
+  border-radius: 6px;
+}
+
+.project-card h3 {
+  margin-top: 0;
+}
+
+.project-card a {
+  color: #2563eb;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.project-card a:hover {
+  text-decoration: underline;
+}
+
+.loading {
+  padding: 30px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.error {
+  color: #dc2626;
+  font-weight: bold;
+}
+
+.error + button,
+.section > button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  background-color: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+.section > button:hover {
+  opacity: 0.9;
+}

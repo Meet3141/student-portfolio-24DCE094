@@ -1,40 +1,115 @@
+import { useEffect, useState } from "react";
+
 function Projects() {
-  const projects = [
-    {
-      title: "FraudShield AI",
-      description:
-        "An AI-powered fraud intelligence and APK investigation system designed to analyze suspicious Android applications and identify potential banking threats.",
-      tech: "Python, AI/ML, APK Analysis, Threat Intelligence"
-    },
-    {
-      title: "AI-Powered Survey Intelligence Platform",
-      description:
-        "An intelligent survey platform that cleans student data, identifies communities using clustering, generates recommendations, and produces automated reports.",
-      tech: "React, Node.js, PostgreSQL, Python, FastAPI, Machine Learning"
-    },
-    {
-      title: "CampusConnect",
-      description:
-        "An attendance governance system that manages RSVP, attendance, no-show detection, grace requests, faculty review, notifications, and attendance escalation.",
-      tech: "React, Node.js, PostgreSQL, Prisma"
-    }
-  ];
+  const [repos, setRepos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [search, setSearch] = useState("");
+
+  const fetchRepositories = () => {
+    setLoading(true);
+    setError(null);
+
+    fetch("https://api.github.com/users/Meet3141/repos")
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch GitHub repositories");
+        }
+
+        return response.json();
+      })
+      .then((data) => {
+        setRepos(data);
+      })
+      .catch((err) => {
+        setError(err.message);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchRepositories();
+  }, []);
+
+  const filteredRepos = repos.filter((repo) =>
+    repo.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <section className="section">
+        <h2>My GitHub Projects</h2>
+
+        <div className="loading">
+          Loading repositories...
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="section">
+        <h2>My GitHub Projects</h2>
+
+        <p className="error">
+          Error: {error}
+        </p>
+
+        <button onClick={fetchRepositories}>
+          Retry
+        </button>
+      </section>
+    );
+  }
 
   return (
     <section className="section">
-      <h2>My Projects</h2>
+      <h2>My GitHub Projects</h2>
 
-      {projects.map((project, index) => (
-        <div className="project-card" key={index}>
-          <h3>{project.title}</h3>
+      <p>
+        Projects fetched directly from GitHub.
+      </p>
 
-          <p>{project.description}</p>
+      <input
+        type="text"
+        placeholder="Search repositories..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="search-input"
+      />
 
-          <p>
-            <strong>Technologies:</strong> {project.tech}
-          </p>
+      {filteredRepos.length === 0 ? (
+        <p>No repositories found.</p>
+      ) : (
+        <div className="repository-list">
+          {filteredRepos.map((repo) => (
+            <div className="project-card" key={repo.id}>
+              <h3>{repo.name}</h3>
+
+              <p>
+                {repo.description ||
+                  "No description available."}
+              </p>
+
+              <p>
+                ⭐ Stars: {repo.stargazers_count}
+              </p>
+
+              <a
+                href={repo.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View on GitHub
+              </a>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </section>
   );
 }
