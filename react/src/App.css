@@ -19,9 +19,14 @@ body {
 
 .nav-logo a {
   text-decoration: none;
-  color: #111827;
-  font-weight: 700;
-  font-size: 1.1rem;
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: #2563eb;
+  transition: color 0.2s ease;
+}
+
+.nav-logo a:hover {
+  color: #1d4ed8;
 }
 
 .nav-links {
