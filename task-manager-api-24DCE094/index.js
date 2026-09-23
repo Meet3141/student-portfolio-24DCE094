@@ -1,25 +1,29 @@
 const express = require("express");
+const mongoose = require("mongoose");
+require("dotenv").config();
+
 const logger = require("./middleware/logger");
 const errorHandler = require("./middleware/errorHandler");
 const taskRoutes = require("./routes/taskRoutes");
 
 const app = express();
+
 const PORT = 5000;
 
-/* -------------------------------
-   Built-in JSON middleware
+
+/* --------------------------------
+   Middleware
 -------------------------------- */
+
 app.use(express.json());
 
-/* -------------------------------
-   Logging Middleware
--------------------------------- */
 app.use(logger);
 
-/* -------------------------------
+
+/* --------------------------------
    Content-Type Middleware
-   For POST and PUT
 -------------------------------- */
+
 app.use((req, res, next) => {
   if (req.method === "POST" || req.method === "PUT") {
     if (!req.is("application/json")) {
@@ -28,18 +32,36 @@ app.use((req, res, next) => {
       });
     }
   }
+
   next();
 });
 
-/* -------------------------------
-   Routes
+
+/* --------------------------------
+   Root route
 -------------------------------- */
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "Task Manager API is running",
+    endpoints: {
+      tasks: "/tasks"
+    }
+  });
+});
+
+
+/* --------------------------------
+   Task routes
+-------------------------------- */
+
 app.use("/tasks", taskRoutes);
 
-/* -------------------------------
+
+/* --------------------------------
    404 Handler
-   Undefined routes
 -------------------------------- */
+
 app.use((req, res) => {
   res.status(404).json({
     error: "Route not found",
@@ -47,15 +69,30 @@ app.use((req, res) => {
   });
 });
 
-/* -------------------------------
+
+/* --------------------------------
    Global Error Handler
-   MUST BE LAST
 -------------------------------- */
+
 app.use(errorHandler);
 
-/* -------------------------------
-   Start Server
+
+/* --------------------------------
+   MongoDB Connection + Server
 -------------------------------- */
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected successfully");
+
+    app.listen(PORT, () => {
+      console.log(
+        `Server running on http://localhost:${PORT}`
+      );
+    });
+  })
+  .catch((err) => {
+    console.error("MongoDB connection failed:");
+    console.error(err.message);
+  });

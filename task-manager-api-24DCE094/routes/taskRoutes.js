@@ -1,139 +1,195 @@
 const express = require("express");
+const mongoose = require("mongoose");
+
 const router = express.Router();
 
-/* -------------------------------
-   In-memory task storage
--------------------------------- */
-let tasks = [
-  {
-    id: 1,
-    title: "Complete React Practical",
-    completed: true
-  },
-  {
-    id: 2,
-    title: "Build Express REST API",
-    completed: false
-  }
-];
+const Task = require("../models/Task");
 
-let nextId = 3;
 
-/* -------------------------------
+/* --------------------------------
    ID Validation Middleware
 -------------------------------- */
-function validateTaskId(req, res, next) {
-  const id = Number(req.params.id);
 
-  if (!Number.isInteger(id) || id <= 0) {
+function validateTaskId(req, res, next) {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({
-      error: "Task ID must be a positive integer"
+      error: "Invalid task ID"
     });
   }
 
   next();
 }
 
-/* -------------------------------
+
+/* --------------------------------
    GET /tasks
    Get all tasks
 -------------------------------- */
-router.get("/", (req, res) => {
-  res.status(200).json(tasks);
+
+router.get("/", async (req, res, next) => {
+  try {
+    const tasks = await Task.find();
+
+    res.status(200).json({
+      success: true,
+      count: tasks.length,
+      data: tasks
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
-/* -------------------------------
+
+/* --------------------------------
    GET /tasks/:id
    Get one task
 -------------------------------- */
-router.get("/:id", validateTaskId, (req, res, next) => {
-  const id = Number(req.params.id);
-  const task = tasks.find((task) => task.id === id);
 
-  if (!task) {
-    const error = new Error("Task not found");
-    error.status = 404;
-    return next(error);
-  }
+router.get(
+  "/:id",
+  validateTaskId,
+  async (req, res, next) => {
+    try {
+      const task = await Task.findById(req.params.id);
 
-  res.status(200).json(task);
-});
+      if (!task) {
+        const error = new Error("Task not found");
+        error.status = 404;
 
-/* -------------------------------
-   POST /tasks
-   Create a new task
--------------------------------- */
-router.post("/", (req, res, next) => {
-  const { title, completed = false } = req.body;
+        return next(error);
+      }
 
-  if (!title || typeof title !== "string") {
-    const error = new Error("Title is required and must be a string");
-    error.status = 400;
-    return next(error);
-  }
-
-  const newTask = {
-    id: nextId++,
-    title: title.trim(),
-    completed: Boolean(completed)
-  };
-
-  tasks.push(newTask);
-  res.status(201).json(newTask);
-});
-
-/* -------------------------------
-   PUT /tasks/:id
-   Update a task
--------------------------------- */
-router.put("/:id", validateTaskId, (req, res, next) => {
-  const id = Number(req.params.id);
-  const task = tasks.find((task) => task.id === id);
-
-  if (!task) {
-    const error = new Error("Task not found");
-    error.status = 404;
-    return next(error);
-  }
-
-  const { title, completed } = req.body;
-
-  if (title !== undefined) {
-    if (typeof title !== "string" || title.trim() === "") {
-      const error = new Error("Title must be a non-empty string");
-      error.status = 400;
-      return next(error);
+      res.status(200).json({
+        success: true,
+        data: task
+      });
+    } catch (err) {
+      next(err);
     }
-    task.title = title.trim();
   }
+);
 
-  if (completed !== undefined) {
-    task.completed = Boolean(completed);
-  }
 
-  res.status(200).json(task);
-});
-
-/* -------------------------------
-   DELETE /tasks/:id
-   Delete a task
+/* --------------------------------
+   POST /tasks
+   Create task
 -------------------------------- */
-router.delete("/:id", validateTaskId, (req, res, next) => {
-  const id = Number(req.params.id);
-  const taskIndex = tasks.findIndex((task) => task.id === id);
 
-  if (taskIndex === -1) {
-    const error = new Error("Task not found");
-    error.status = 404;
-    return next(error);
+router.post("/", async (req, res, next) => {
+  try {
+    const {
+      title,
+      description,
+      completed,
+      priority
+    } = req.body;
+
+    const task = await Task.create({
+      title,
+      description,
+      completed,
+      priority
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Task created successfully",
+      data: task
+    });
+  } catch (err) {
+    next(err);
   }
-
-  const deletedTask = tasks.splice(taskIndex, 1)[0];
-
-  res.status(200).json({
-    message: "Task deleted successfully",
-    task: deletedTask
-  });
 });
+
+
+/* --------------------------------
+   PUT /tasks/:id
+   Update task
+-------------------------------- */
+
+router.put(
+  "/:id",
+  validateTaskId,
+  async (req, res, next) => {
+    try {
+      const task = await Task.findById(req.params.id);
+
+      if (!task) {
+        const error = new Error("Task not found");
+        error.status = 404;
+
+        return next(error);
+      }
+
+      const {
+        title,
+        description,
+        completed,
+        priority
+      } = req.body;
+
+      if (title !== undefined) {
+        task.title = title;
+      }
+
+      if (description !== undefined) {
+        task.description = description;
+      }
+
+      if (completed !== undefined) {
+        task.completed = completed;
+      }
+
+      if (priority !== undefined) {
+        task.priority = priority;
+      }
+
+      await task.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Task updated successfully",
+        data: task
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+
+/* --------------------------------
+   DELETE /tasks/:id
+   Delete task
+-------------------------------- */
+
+router.delete(
+  "/:id",
+  validateTaskId,
+  async (req, res, next) => {
+    try {
+      const task = await Task.findByIdAndDelete(
+        req.params.id
+      );
+
+      if (!task) {
+        const error = new Error("Task not found");
+        error.status = 404;
+
+        return next(error);
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Task deleted successfully",
+        data: task
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 
 module.exports = router;
