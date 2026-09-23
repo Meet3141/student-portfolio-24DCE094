@@ -156,66 +156,281 @@ body {
   color: white;
 }
 
-/* GitHub API Projects */
+/* ================================
+   Modern Task Manager UI
+================================ */
 
-.search-input {
+.tm-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 0 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #333;
+}
+
+.tm-header {
+  text-align: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 30px;
+  letter-spacing: -0.5px;
+}
+
+/* Toast */
+.tm-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111827;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-weight: 500;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from { bottom: 0; opacity: 0; }
+  to { bottom: 30px; opacity: 1; }
+}
+
+.tm-error {
+  background: #fef2f2;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border: 1px solid #f87171;
+}
+
+/* Input Form Card */
+.tm-form-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 30px;
+  border: 1px solid #f1f5f9;
+}
+
+.tm-input-main {
   width: 100%;
-  padding: 12px;
-  margin: 20px 0;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  border: none;
   font-size: 16px;
+  padding: 12px;
+  outline: none;
+  color: #1f2937;
   box-sizing: border-box;
 }
+.tm-input-main::placeholder {
+  color: #9ca3af;
+}
 
-.repository-list {
+.tm-input-notes {
+  width: 100%;
+  border: none;
+  border-top: 1px solid #f3f4f6;
+  font-size: 14px;
+  padding: 12px;
+  outline: none;
+  color: #4b5563;
+  resize: vertical;
+  background: #fafafa;
+  box-sizing: border-box;
+  margin-top: 8px;
+}
+
+.tm-form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.tm-form-right {
+  display: flex;
+  gap: 12px;
+}
+
+.tm-btn-ghost {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.tm-btn-ghost:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.tm-btn-primary {
+  background: #111827;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.tm-btn-primary:hover:not(:disabled) {
+  background: #374151;
+}
+.tm-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Toolbar (Tabs + Stats) */
+.tm-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+.tm-tabs {
+  display: flex;
+  gap: 16px;
+}
+
+.tm-tab {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+.tm-tab:hover {
+  color: #111827;
+}
+.tm-tab.active {
+  color: #111827;
+  border-bottom-color: #111827;
+}
+
+.tm-stats {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Task List */
+.tm-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
-.project-card {
-  padding: 20px;
-  border-left: 4px solid #2563eb;
-  background-color: #f8fafc;
-  border-radius: 6px;
-}
-
-.project-card h3 {
-  margin-top: 0;
-}
-
-.project-card a {
-  color: #2563eb;
-  font-weight: bold;
-  text-decoration: none;
-}
-
-.project-card a:hover {
-  text-decoration: underline;
-}
-
-.loading {
-  padding: 30px;
+.tm-empty {
   text-align: center;
-  font-size: 18px;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 14px;
 }
 
-.error {
-  color: #dc2626;
-  font-weight: bold;
+.tm-loading {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  font-size: 15px;
 }
 
-.error + button,
-.section > button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  background-color: #2563eb;
-  color: white;
+/* Task Card */
+.tm-card {
+  display: flex;
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.tm-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.tm-card-checkbox {
+  margin-right: 16px;
+  padding-top: 2px;
+}
+.tm-card-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #111827;
   cursor: pointer;
 }
 
-.section > button:hover {
-  opacity: 0.9;
+.tm-card-content {
+  flex: 1;
+}
+
+.tm-card-title {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+.tm-card-title.completed {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.tm-card-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.tm-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 16px;
+  opacity: 0.3;
+  transition: opacity 0.2s;
+}
+.tm-card:hover .tm-card-actions {
+  opacity: 1;
+}
+
+.tm-icon-btn {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.tm-icon-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+.tm-icon-btn.delete:hover {
+  background: #fef2f2;
+  color: #dc2626;
 }
