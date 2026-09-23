@@ -434,3 +434,79 @@ body {
   background: #fef2f2;
   color: #dc2626;
 }
+
+/* ================================
+   Modern Auth UI
+================================ */
+
+.auth-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+  padding: 40px !important;
+  transition: all 0.3s ease;
+}
+
+.auth-container h2 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.auth-container p {
+  font-size: 15px;
+}
+
+.auth-container .form-input {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  font-size: 15px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  outline: none;
+  color: #1f2937;
+  box-sizing: border-box;
+  background: #f9fafb;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.auth-container .form-input:focus {
+  border-color: #2563eb;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.auth-container .btn-primary {
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  margin-top: 10px;
+}
+
+.auth-container .btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.auth-container .btn-primary:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.auth-container button[type="button"] {
+  transition: color 0.2s;
+}
+.auth-container button[type="button"]:hover {
+  color: #1e40af !important;
+}

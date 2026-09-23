@@ -4,6 +4,9 @@ const mongoose = require("mongoose");
 const router = express.Router();
 
 const Task = require("../models/Task");
+const authMiddleware = require("../middleware/authMiddleware");
+
+router.use(authMiddleware);
 
 
 /* --------------------------------

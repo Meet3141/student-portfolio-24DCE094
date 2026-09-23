@@ -53,10 +53,13 @@ app.get("/", (req, res) => {
 });
 
 
+const authRoutes = require("./routes/authRoutes");
+
 /* --------------------------------
    Task routes
 -------------------------------- */
 
+app.use("/auth", authRoutes);
 app.use("/tasks", taskRoutes);
 
 

@@ -1,291 +1,332 @@
-import { useEffect, useState } from "react";
-import { getTasks, createTask, updateTask, deleteTask } from "../api";
+import React, { useState, useEffect, useCallback } from 'react';
+import { getTasks, createTask, updateTask, deleteTask, login, register, getMe } from '../api';
+import TaskForm from './TaskForm';
+import TaskCard from './TaskCard';
+import TaskFilter from './TaskFilter';
+import EditTaskModal from './EditTaskModal';
+import DeleteConfirmModal from './DeleteConfirmModal';
+import TaskStats from './TaskStats';
+import AlertBanner from './AlertBanner';
+import { LogOut } from 'lucide-react';
 
-function Projects() {
+export default function Projects() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  
+  // Auth state
+  const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Task state
   const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  
-  // Form State
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [showNotes, setShowNotes] = useState(false);
-  const [priority, setPriority] = useState("medium"); // default
-  
-  const [actionLoading, setActionLoading] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  
-  // Tabs: 'all', 'active', 'completed'
-  const [filter, setFilter] = useState("all");
-  
-  const [toast, setToast] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [processingTaskId, setProcessingTaskId] = useState(null);
 
-  const loadTasks = async () => {
+  const [editingTask, setEditingTask] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [deletingTask, setDeletingTask] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [filter, setFilter] = useState('all');
+
+  // Check auth on mount
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsAuthenticated(true);
+      fetchUser();
+    }
+  }, []);
+
+  const fetchUser = async () => {
     try {
-      setLoading(true);
-      setError("");
-      const data = await getTasks();
-      setTasks(data);
+      const data = await getMe();
+      setUser(data);
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      if (err.status === 401) {
+        handleLogout();
+      }
     }
   };
 
-  useEffect(() => {
-    loadTasks();
-  }, []);
-
-  const showToast = (message) => {
-    setToast(message);
+  const notifySuccess = (msg) => {
+    setSuccessMessage(msg);
     setTimeout(() => {
-      setToast("");
+      setSuccessMessage('');
     }, 3000);
   };
 
-  const handleSubmit = async (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setError("Task title is required");
-      return;
-    }
-
+    setAuthLoading(true);
+    setErrorMessage('');
     try {
-      setActionLoading(true);
-      setError("");
-      
-      const taskData = {
-        title: title.trim(),
-        description: description.trim(),
-        priority
-      };
-
-      if (editingId) {
-        const updatedTask = await updateTask(editingId, taskData);
-        setTasks((currentTasks) =>
-          currentTasks.map((t) => (t._id === editingId ? updatedTask : t))
-        );
-        showToast("Task updated successfully");
+      if (authMode === 'register') {
+        await register(email, password);
+        notifySuccess('Registration successful! You can now log in.');
+        setAuthMode('login');
       } else {
-        const newTask = await createTask(taskData);
-        setTasks((currentTasks) => [...currentTasks, newTask]);
-        showToast("Task added successfully");
+        const data = await login(email, password);
+        localStorage.setItem('token', data.token);
+        setIsAuthenticated(true);
+        fetchUser();
       }
-
-      // Reset form
-      setTitle("");
-      setDescription("");
-      setShowNotes(false);
-      setPriority("medium");
-      setEditingId(null);
     } catch (err) {
-      setError(err.message);
+      setErrorMessage(err.message || 'Authentication failed');
     } finally {
-      setActionLoading(false);
+      setAuthLoading(false);
     }
   };
 
-  const handleEdit = (task) => {
-    setEditingId(task._id);
-    setTitle(task.title);
-    setDescription(task.description || "");
-    if (task.description) setShowNotes(true);
-    setPriority(task.priority || "medium");
-    setError("");
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+    setUser(null);
+    setTasks([]);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
+  const fetchTasks = useCallback(async () => {
+    if (!isAuthenticated) return;
+    setIsLoading(true);
+    setErrorMessage('');
     try {
-      setActionLoading(true);
-      setError("");
-      await deleteTask(id);
-      setTasks((currentTasks) => currentTasks.filter((t) => t._id !== id));
-      showToast("Task deleted successfully");
+      const response = await getTasks();
+      if (response && Array.isArray(response.data)) {
+        setTasks(response.data);
+      } else if (Array.isArray(response)) {
+        setTasks(response);
+      } else {
+        setTasks([]);
+      }
     } catch (err) {
-      setError(err.message);
+      console.error('Error fetching tasks:', err);
+      if (err.status === 401) {
+        handleLogout();
+      } else {
+        setErrorMessage(err.message || 'Could not connect to backend server.');
+      }
     } finally {
-      setActionLoading(false);
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  const handleCreateTask = async (taskData) => {
+    setIsSubmitting(true);
+    setErrorMessage('');
+    try {
+      const response = await createTask(taskData);
+      const newTask = response.data || response;
+      setTasks((prev) => [newTask, ...prev]);
+      notifySuccess('Task added');
+      return true;
+    } catch (err) {
+      if (err.status === 401) handleLogout();
+      else setErrorMessage(err.message || 'Failed to create task.');
+      return false;
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const toggleComplete = async (task) => {
+  const handleToggleStatus = async (task) => {
+    setProcessingTaskId(task._id);
+    setErrorMessage('');
+    const newStatus = !task.completed;
+
     try {
-      const updatedTask = await updateTask(task._id, { completed: !task.completed });
-      setTasks((currentTasks) =>
-        currentTasks.map((t) => (t._id === task._id ? updatedTask : t))
+      const response = await updateTask(task._id, {
+        title: task.title,
+        description: task.description,
+        completed: newStatus,
+      });
+      const updated = response.data || response;
+      setTasks((prev) =>
+        prev.map((t) => (t._id === task._id ? { ...t, ...updated, completed: newStatus } : t))
       );
     } catch (err) {
-      setError("Failed to update status");
+      if (err.status === 401) handleLogout();
+      else setErrorMessage(err.message || 'Failed to update task.');
+    } finally {
+      setProcessingTaskId(null);
     }
   };
 
-  if (loading) {
+  const handleUpdateTask = async (id, taskData) => {
+    setIsUpdating(true);
+    setErrorMessage('');
+    try {
+      const response = await updateTask(id, taskData);
+      const updated = response.data || response;
+      setTasks((prev) =>
+        prev.map((t) => (t._id === id ? { ...t, ...updated } : t))
+      );
+      notifySuccess('Task updated');
+      return true;
+    } catch (err) {
+      if (err.status === 401) handleLogout();
+      else setErrorMessage(err.message || 'Failed to save changes.');
+      return false;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingTask) return;
+    const id = deletingTask._id;
+    setIsDeleting(true);
+    setErrorMessage('');
+    try {
+      await deleteTask(id);
+      setTasks((prev) => prev.filter((t) => t._id !== id));
+      notifySuccess('Task deleted');
+      setDeletingTask(null);
+    } catch (err) {
+      if (err.status === 401) handleLogout();
+      else setErrorMessage(err.message || 'Failed to delete task.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const filteredTasks = tasks.filter((task) => {
+    if (filter === 'active') return !task.completed;
+    if (filter === 'completed') return task.completed;
+    return true;
+  });
+
+  const counts = {
+    all: tasks.length,
+    active: tasks.filter((t) => !t.completed).length,
+    completed: tasks.filter((t) => t.completed).length,
+  };
+
+  // Auth UI
+  if (!isAuthenticated) {
     return (
-      <section className="tm-container">
-        <h2 className="tm-header">Tasks</h2>
-        <div className="tm-loading">Loading your tasks...</div>
-      </section>
+      <div className="section auth-container" style={{ maxWidth: 400, margin: '80px auto', textAlign: 'center' }}>
+        <h2>{authMode === 'login' ? 'Welcome Back' : 'Create an Account'}</h2>
+        <p style={{ color: '#6b7280', marginBottom: '20px' }}>
+          {authMode === 'login' ? 'Login to manage your tasks' : 'Register to get started'}
+        </p>
+
+        {errorMessage && <AlertBanner type="danger" message={errorMessage} onDismiss={() => setErrorMessage('')} />}
+        {successMessage && <AlertBanner type="success" message={successMessage} onDismiss={() => setSuccessMessage('')} />}
+
+        <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <input
+            type="email"
+            placeholder="Email address"
+            className="form-input"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="password"
+            placeholder="Password (min 6 chars)"
+            className="form-input"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button type="submit" className="btn btn-primary" disabled={authLoading}>
+            {authLoading ? 'Please wait...' : (authMode === 'login' ? 'Login' : 'Register')}
+          </button>
+        </form>
+
+        <p style={{ marginTop: '20px', fontSize: '14px', color: '#6b7280' }}>
+          {authMode === 'login' ? "Don't have an account? " : "Already have an account? "}
+          <button 
+            type="button" 
+            style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontWeight: 'bold' }}
+            onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+          >
+            {authMode === 'login' ? 'Sign up' : 'Log in'}
+          </button>
+        </p>
+      </div>
     );
   }
 
-  const activeTasks = tasks.filter(t => !t.completed);
-  const completedTasks = tasks.filter(t => t.completed);
-  
-  let displayedTasks = tasks;
-  if (filter === "active") displayedTasks = activeTasks;
-  if (filter === "completed") displayedTasks = completedTasks;
-
+  // Main Task Manager UI
   return (
-    <section className="tm-container">
-      {/* Toast Notification */}
-      {toast && <div className="tm-toast">{toast}</div>}
+    <div className="app-container section">
+      <header className="app-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <h1 className="brand-title" style={{ margin: 0 }}>My Tasks</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <span style={{ fontSize: '14px', color: '#6b7280' }}>
+            {user ? user.email : 'Loading...'}
+          </span>
+          <button onClick={handleLogout} className="btn-icon" title="Logout" style={{ color: '#dc2626' }}>
+            <LogOut size={18} />
+          </button>
+        </div>
+      </header>
 
-      <h2 className="tm-header">Tasks</h2>
+      <AlertBanner type="danger" message={errorMessage} onDismiss={() => setErrorMessage('')} />
+      <AlertBanner type="success" message={successMessage} onDismiss={() => setSuccessMessage('')} />
 
-      {error && <div className="tm-error">{error}</div>}
+      <TaskStats tasks={tasks} />
 
-      {/* Input Section */}
-      <div className="tm-form-card">
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            className="tm-input-main"
-            placeholder="What needs to be done?"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            disabled={actionLoading}
-          />
-          
-          {showNotes && (
-            <textarea
-              className="tm-input-notes"
-              placeholder="Add details/notes here..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={actionLoading}
-              rows="3"
+      <TaskForm onTaskCreated={handleCreateTask} isSubmitting={isSubmitting} />
+
+      {tasks.length > 0 && (
+        <TaskFilter filter={filter} onFilterChange={setFilter} counts={counts} />
+      )}
+
+      {isLoading ? (
+        <div className="state-box">
+          <div className="spinner" style={{ marginBottom: '0.5rem' }} />
+          <div>Loading tasks...</div>
+        </div>
+      ) : tasks.length === 0 ? (
+        <div className="state-box">
+          No tasks yet. Add your first task above.
+        </div>
+      ) : filteredTasks.length === 0 ? (
+        <div className="state-box">
+          No {filter} tasks.
+        </div>
+      ) : (
+        <div className="task-list">
+          {filteredTasks.map((task) => (
+            <TaskCard
+              key={task._id}
+              task={task}
+              onToggleStatus={handleToggleStatus}
+              onEdit={setEditingTask}
+              onDelete={setDeletingTask}
+              isProcessing={processingTaskId === task._id}
             />
-          )}
-
-          <div className="tm-form-actions">
-            {!showNotes && (
-              <button 
-                type="button" 
-                className="tm-btn-ghost" 
-                onClick={() => setShowNotes(true)}
-              >
-                + Add notes
-              </button>
-            )}
-            {showNotes && <div></div> /* flex spacer */}
-            
-            <div className="tm-form-right">
-              {editingId && (
-                <button
-                  type="button"
-                  className="tm-btn-ghost"
-                  onClick={() => {
-                    setEditingId(null);
-                    setTitle("");
-                    setDescription("");
-                    setShowNotes(false);
-                  }}
-                >
-                  Cancel
-                </button>
-              )}
-              <button 
-                type="submit" 
-                className="tm-btn-primary" 
-                disabled={actionLoading || !title.trim()}
-              >
-                {actionLoading ? "..." : editingId ? "Update Task" : "Add Task"}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      {/* Tabs & Stats */}
-      <div className="tm-toolbar">
-        <div className="tm-tabs">
-          <button 
-            className={`tm-tab ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            All ({tasks.length})
-          </button>
-          <button 
-            className={`tm-tab ${filter === 'active' ? 'active' : ''}`}
-            onClick={() => setFilter('active')}
-          >
-            Active ({activeTasks.length})
-          </button>
-          <button 
-            className={`tm-tab ${filter === 'completed' ? 'active' : ''}`}
-            onClick={() => setFilter('completed')}
-          >
-            Completed ({completedTasks.length})
-          </button>
+          ))}
         </div>
-        <div className="tm-stats">
-          {completedTasks.length} of {tasks.length} completed
-        </div>
-      </div>
+      )}
 
-      {/* Task List */}
-      <div className="tm-list">
-        {displayedTasks.length === 0 ? (
-          <div className="tm-empty">No tasks found.</div>
-        ) : (
-          displayedTasks.map((task) => (
-            <div className="tm-card" key={task._id}>
-              
-              <div className="tm-card-checkbox">
-                <input 
-                  type="checkbox" 
-                  checked={task.completed} 
-                  onChange={() => toggleComplete(task)}
-                />
-              </div>
-              
-              <div className="tm-card-content">
-                <h3 className={`tm-card-title ${task.completed ? 'completed' : ''}`}>
-                  {task.title}
-                </h3>
-                {task.description && (
-                  <p className="tm-card-desc">{task.description}</p>
-                )}
-              </div>
-              
-              <div className="tm-card-actions">
-                <button 
-                  className="tm-icon-btn" 
-                  onClick={() => handleEdit(task)}
-                  title="Edit"
-                >
-                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                </button>
-                <button 
-                  className="tm-icon-btn delete" 
-                  onClick={() => handleDelete(task._id)}
-                  title="Delete"
-                  disabled={actionLoading}
-                >
-                  <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-              </div>
+      <EditTaskModal
+        task={editingTask}
+        isOpen={Boolean(editingTask)}
+        onClose={() => setEditingTask(null)}
+        onUpdate={handleUpdateTask}
+        isUpdating={isUpdating}
+      />
 
-            </div>
-          ))
-        )}
-      </div>
-
-    </section>
+      <DeleteConfirmModal
+        isOpen={Boolean(deletingTask)}
+        taskTitle={deletingTask?.title || ''}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingTask(null)}
+        isDeleting={isDeleting}
+      />
+    </div>
   );
 }
-
-export default Projects;
